@@ -1,13 +1,16 @@
-from xmlrpc.server import SimpleXMLRPCServer
-from xmlrpc.server import SimpleXMLRPCRequestHandler
+from SimpleXMLRPCServer import SimpleXMLRPCServer
+from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 from subprocess import call
+import os
+import shutil
+import boto3
 
 # Restrict to a particular path.
 class RequestHandler(SimpleXMLRPCRequestHandler):
-    rpc_paths = ('/RPC2',)
+	rpc_paths=('/RPC2',)
 
 # Create server
-server = SimpleXMLRPCServer(("localhost", 8000),requestHandler=RequestHandler)
+server = SimpleXMLRPCServer(("localhost", 8000),requestHandler=RequestHandler, allow_none=True)
 server.register_introspection_functions()
 
 # Register pow() function; this will use the value of
@@ -27,29 +30,31 @@ server.register_introspection_functions()
 #         return x * y
 
 #Server dependencies awscli, boto3, python3
+
+
+# When we init need to update the iptables on the machine
 class AmazonCloudFunctions:
-	def testMultiply(self,x,y):
-		return x*y	#hello world function 
-	def configureAWS(key, secret_key):
-		#TODO: Sets up the users AWS creditentials and region
-		#so boto3 can be used
-		#then call self.ec2=boto3.resource('ec2')
-		#could just make a ~/.aws directory with the credentials
-	def listInstances():
-		#TODO: List all the instances available
-	def createInstance():
+	def configure_aws(self,key,secret_key):
+		#Create the .aws directory with the users keys (same functionality as aws configure)
+		path=os.path.join(os.environ['HOME'],".aws")
+		if os.path.exists(path):
+			print("Directory exists, removing")
+			shutil.rmtree(path)
+		os.makedirs(path)
+		creds=open(os.path.join(path,"credentials"),'w')
+		config=open(os.path.join(path,"config"),'w')
+		config.write('[default]\nregion = us-west2'); # default region
+		creds.write('[default]\naws_access_key_id = '+key+'\naws_secret_access_key = '+secret_key);
+		creds.close()
+		config.close()
+		self.ec2=boto3.resource('ec2') # ec2 now available for the other methods
+	def list_instances():
+		print("list")
+	def create_instance():
+		print("create")
 
-	def startInstance():
-		
-	def stopInstance():
 
-	def destroyInstance():
 
-	def generateKeyPair():
-		#TODO: Generates a key pair to be used for the ssh
-	def sshToInstances(pem_file, public_dns):
-		#TODO: Using the pem file, open up an ssh session with the instance
-		#Note that the username is ec2-user
 
 
 server.register_instance(AmazonCloudFunctions())

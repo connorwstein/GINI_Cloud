@@ -1,7 +1,9 @@
-import xmlrpc.client
+import xmlrpclib
+import boto3
 
-s = xmlrpc.client.ServerProxy('http://localhost:8000')
-print(s.testMultiply(2,3))
+s = xmlrpclib.ServerProxy('http://localhost:8000')
+#note add your keys before running the test client
+s.configureAWS(<KEY>,<SECRET KEY>);
 
 # Print list of available methods
 print(s.system.listMethods())
