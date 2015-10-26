@@ -14,6 +14,12 @@ server.register_introspection_functions()
 
 #Server dependencies awscli, boto3, python3
 class AmazonCloudFunctions:
+	
+	def __init__(self):
+		self.instances = []
+		self.key_pair = None
+		self.key_name = "GINI"
+
 	def configure_aws(self,key,secret_key):
 		#Create the .aws directory with the users keys (same functionality as aws configure)
 		path=os.path.join(os.environ['HOME'],".aws")
@@ -21,17 +27,32 @@ class AmazonCloudFunctions:
 			print("Directory exists, removing")
 			shutil.rmtree(path)
 		os.makedirs(path)
-		creds=open(os.pat.join(path,"credentials"),'w')
+		creds=open(os.path.join(path,"credentials"),'w')
 		config=open(os.path.join(path,"config"),'w')
-		config.write('[default]\nregion = us-west2'); # default region
+		config.write('[default]\nregion = us-west-2'); # default region
 		creds.write('[default]\naws_access_key_id = '+key+'\naws_secret_access_key = '+secret_key);
 		creds.close()
 		config.close()
-		self.ec2=boto3.resource('ec2') # ec2 now available for the other methods
-	def list_instances():
-		print("list")
-	def create_instance():
-		print("create")
+		ec2=boto3.resource('ec2') # ec2 now available for the other methods
+		for inst in ec2.instances.all():
+			self.instances.append(inst)
+	def list_instances(self):
+		for inst in self.instances:
+			print("ID: "+inst.id+" TYPE: "+inst.instance_type+" STATE: "+inst.state['Name']+" Public DNS: "+inst.public_dns_name)
+	def create_instance(self):
+		# TODO Bernie create an image and then create a instance
+	def stop_all_instances(self):
+		for inst in self.instances:
+			inst.stop()
+	def start_all_instances(self):
+		for inst in self.instances:
+			inst.terminate()
+	def key_gen(self):
+    	self.key_pair=ec2.create_key_pair(False, self.key_name)
+   		# f = open(key_name+".pem",'w')
+     #    f.write(key_pair.key_material)
+     #    f.close()
+     #    os.chmod(f.name,0400)
 
 server.register_instance(AmazonCloudFunctions())
 
