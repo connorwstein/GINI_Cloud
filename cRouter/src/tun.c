@@ -191,8 +191,14 @@ int tun_recvfrom(vpl_data_t *vpl, void *buf, int len)
     
     rcv_addr_len = sizeof(rcvaddr);
     n=recvfrom(vpl->data,buf,len,0,(struct sockaddr *)&rcvaddr,&rcv_addr_len);
-    //ADD verbose command here to inspect the buf
-
+    //Inspect the buf before the error checking
+    printf("RAW TUNNEL DATA\n");
+    char *data = (char*)buf;
+    int i;
+    for(i = 0; i < len; i++){
+        printf("%c", data[i]);
+    }
+    printf("\n");
     if (n == -1) 
     {
         verbose(2, "[tun_recvfrom]:: unable to receive packet, error = %s", strerror(errno));		
