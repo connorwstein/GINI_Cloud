@@ -11,9 +11,10 @@ s.configure_aws("AKIAIM65WKOBI3B3ETKA","emIme22KJKEPwrNIVbZ4h+FLeUhDrwNgqKWt55su
 # s.list_instances()
 # s.create_instance()
 # s.list_instances()
+print("Done Configuring AWS")
 s.create_tunnel_cloud_config_file()
-s.create_tunnel_local_config_file()
-#s.create_tunnel()
+#s.create_tunnel_local_config_file()
+s.create_tunnel()
 
 
 # Print list of available methods
