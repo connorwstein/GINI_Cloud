@@ -113,6 +113,23 @@ class AmazonCloudFunctions:
 
 
 
+	def add_udp_rules(self):
+
+		security_group = self.ec2.create_security_group(
+			DryRun=False,
+			GroupName='test',
+			Description='this is a test'
+		)
+
+		response = security_group.authorize_ingress(
+			DryRun=False,
+			GroupName='test',
+			IpProtocol='udp',
+			FromPort=0,
+			ToPort=65000,
+			CidrIp='0.0.0.0/0'
+		)
+
 server.register_instance(AmazonCloudFunctions())
 
 print("Serving on 8000")
