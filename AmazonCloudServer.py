@@ -20,7 +20,7 @@ class AmazonCloudFunctions:
 		self.key_pair = None
 		self.key_name = "GINI"
 		self.ec2 = None
-		self.new_instance_ip = "52.33.122.117" # just for debugging
+		self.new_instance_ip = None # just for debugging
 
 	def configure_aws(self,key,secret_key):
 		#Create the .aws directory with the users keys (same functionality as aws configure)
@@ -36,6 +36,8 @@ class AmazonCloudFunctions:
 		creds.close()
 		config.close()
 		self.ec2=boto3.resource('ec2') # ec2 now available for the other methods
+	def get_ip(self):
+		return self.new_instance_ip
 	def list_instances(self):
 		for inst in self.ec2.instances.all():
 			if inst.public_ip_address != None:
@@ -52,18 +54,22 @@ class AmazonCloudFunctions:
 		# This image ID is a special image that has the yRouter installed on it
 		new_instance = self.ec2.create_instances(ImageId="ami-fa94859b", MinCount=1, MaxCount=1, InstanceType='t2.micro', KeyName = self.key_name, SecurityGroups = ['GINI',])	
 		# Chill for that instance to be crafted
-		while(new_instance[0].state['Name'] != "running"):
+		while(new_instance[0].public_ip_address == None):
 			new_instance[0].load()  # Get current status
-			print("ID: "+new_instance[0].id+" State: "+new_instance[0].state['Name'])
+			print("ID: "+new_instance[0].id+" State: "+new_instance[0].state['Name']+" No IP Address")
 			time.sleep(5)
 		# Need this newly created instances public IP address to set up the tunnel
-		self.new_instance_ip = new_instance.public_ip_address 
+		self.new_instance_ip = new_instance[0].public_ip_address 
 	def stop_all_instances(self):
 		for inst in self.ec2.instances.all():
 			inst.stop()
 	def terminate_all_instances(self):
 		for inst in self.ec2.instances.all():
 			inst.terminate()
+	def terminate_instance(self, ip):
+		for inst in self.ec2.instances.all():
+			if inst.public_ip_address == ip:
+				inst.terminate()
 	def key_gen(self):
 		# False means make the key for real
 		self.key_pair = self.ec2.create_key_pair(DryRun = False, KeyName = self.key_name)
@@ -80,7 +86,7 @@ class AmazonCloudFunctions:
 		os.system("scp -i "+self.key_name+".pem -o StrickHostKeyChecking=no cloud_tunnel ubuntu@"+self.new_instance_ip)
 		#start the cloud router
 		# Note you have to delete the files it creates on the cloud after if you want to run it again
-		os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@52.33.122.117 'source ~/.profile; yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
+		os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
 		#start the local router ...
 
 	def create_tunnel_cloud_config_file(self):
