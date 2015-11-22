@@ -86,7 +86,7 @@ class AmazonCloudFunctions:
 		os.system("scp -i "+self.key_name+".pem -o StrictHostKeyChecking=no cloud_tunnel ubuntu@"+self.new_instance_ip+":/home/ubuntu")
 		#start the cloud router
 		# Note you have to delete the files it creates on the cloud after if you want to run it again
-		os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
+		os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; sudo -E yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
 		#start the local router ...
 
 	def create_tunnel_cloud_config_file(self):
