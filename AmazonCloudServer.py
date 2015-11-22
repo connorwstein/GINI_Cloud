@@ -83,7 +83,7 @@ class AmazonCloudFunctions:
 		# need to copy the yRouter to the cloud
 		print("Creating tunnel")
 		# copy the cloud configuration file to the instance
-		os.system("scp -i "+self.key_name+".pem -o StrickHostKeyChecking=no cloud_tunnel ubuntu@"+self.new_instance_ip)
+		os.system("scp -i "+self.key_name+".pem -o StrictHostKeyChecking=no cloud_tunnel ubuntu@"+self.new_instance_ip+":/home/ubuntu")
 		#start the cloud router
 		# Note you have to delete the files it creates on the cloud after if you want to run it again
 		os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
