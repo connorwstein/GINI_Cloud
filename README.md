@@ -2,12 +2,13 @@
 
 Automatic Creation of Tunnel:
 
-- git clone https://github.com/connorwstein/GINI_Cloud.git 
-- Make sure you have run chmod 400 GINI.pem  
-- Make sure that the yrouter executable has been built (i.e. make clean; make)
-- Make sure you have a GINI_HOME (doesnt matter where it points to) 
-- python AmazonCloudServer.py, should show serving on 8000
-- open a new terminal and then do python TestClient.py
+git clone https://github.com/connorwstein/GINI_Cloud.git  
+Make sure you have run chmod 400 GINI.pem  
+Make sure that the yrouter executable has been built (i.e. make clean; make)
+Make sure you have a GINI_HOME (doesnt matter where it points to) 
+python AmazonCloudServer.py, should show serving on 8000
+open a new terminal and then do python TestClient.py
+
 >>>get_running  // will use an already running instance
 >>>create //will create a new instance
 >>>ip 
