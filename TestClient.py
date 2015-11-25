@@ -20,9 +20,16 @@ while True:
 		s.list_instances()
 	if key == 'ip':
 		print(s.get_ip())
-	if key == 'open_cloud':
+	if key == 'create_cloud_config':
 		s.create_tunnel_cloud_config_file()
+	if key == 'create_local_config':
+		s.create_tunnel_local_config_file()
+	if key == 'create_tunnel':
 		s.create_tunnel()
 	if key == 'terminate':
 		ip = raw_input(">>> ip address? ")
 		s.terminate_instance(ip)
+	if key == 'killall':
+		s.terminate_all_instances()
+	if key == 'get_running':
+		s.get_running_instance()
