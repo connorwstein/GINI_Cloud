@@ -94,7 +94,7 @@ class AmazonCloudFunctions:
 	def cloud_shell(self):
 			os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; sudo -E yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
 	def local_shell(self):
-			os.system("xterm -e cRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/gini/GINI_Cloud --config=local_tunnel Router_1")
+			os.system("xterm -e cRouter/src/yrouter --interactive=1 --verbose=2 --confpath="+os.getcwd()+" --config=local_tunnel Router_1")
 	def create_tunnel(self):
 		# need to copy the yRouter to the cloud
 		print("Creating tunnel")
