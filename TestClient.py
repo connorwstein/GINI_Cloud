@@ -33,3 +33,5 @@ while True:
 		s.terminate_all_instances()
 	if key == 'get_running':
 		s.get_running_instance()
+	if key == 'exit':
+		sys.exit(0)
