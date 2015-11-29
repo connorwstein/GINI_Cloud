@@ -77,7 +77,7 @@ class AmazonCloudFunctions:
 				inst.terminate()
 	def get_running_instance(self):
 		for inst in self.ec2.instances.all():
-			if inst != None:
+			if inst.public_ip_address != None:
 				self.new_instance_ip = inst.public_ip_address
 				break;
 	def key_gen(self):
@@ -121,7 +121,7 @@ class AmazonCloudFunctions:
 		print("Got public ip")
 		ifconfig = "ifconfig add tun0 -dstip "+local_ip+" -dstport 0 -addr 10.10.10.10 -hwaddr a0:a0:a0:a0:a0\n"
 		f.write(ifconfig)
-		route = "route add -dev tun0 -net "+local_ip+" -netmask 255.255.255.255\n"
+		route = "route add -dev tun0 -net 20.20.20.20 -netmask 255.255.255.255\n"
 		f.write(route)
 		f.close()
 
