@@ -132,7 +132,7 @@ class AmazonCloudFunctions:
 		f = open("local_tunnel","w")
 		ifconfig = "ifconfig add tun0 -dstip "+self.new_instance_ip+" -dstport 0 -addr 20.20.20.20 -hwaddr a1:a1:a1:a1:a1\n"
 		f.write(ifconfig)
-		route = "route add -dev tun0 -net "+self.new_instance_ip+" -netmask 255.255.255.255\n"
+		route = "route add -dev tun0 -net 10.10.10.10 -netmask 255.255.255.255\n"
 		f.write(route)
 		f.close()
 	def add_udp_rules(self):
