@@ -57,7 +57,7 @@ class AmazonCloudFunctions:
 		if not found_key:
 			self.key_gen()
 		# This image ID is a special image that has the yRouter installed on it
-		new_instance = self.ec2.create_instances(ImageId="ami-fa94859b", MinCount=1, MaxCount=1, InstanceType='t2.micro', KeyName = self.key_name, SecurityGroups = ['GINI',])	
+		new_instance = self.ec2.create_instances(ImageId="ami-4021c620", MinCount=1, MaxCount=1, InstanceType='t2.micro', KeyName = self.key_name, SecurityGroups = ['GINI',])	
 		# Chill for that instance to be crafted
 		while(new_instance[0].public_ip_address == None):
 			new_instance[0].load()  # Get current status
@@ -92,7 +92,8 @@ class AmazonCloudFunctions:
 	def get_port_number(self, interface_id, router_number):
 		return 60000+interface_id+router_number*100
 	def cloud_shell(self):
-			os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; sudo -E yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
+			#login as root in order to create the raw socket
+			os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no -t ubuntu@"+self.new_instance_ip+" 'export GINI_HOME=/home/ubuntu; sudo -E /home/ubuntu/yRouter/src/yrouter --interactive=1 --confpath=/home/ubuntu --config=cloud_tunnel Router_2;exec bash'")
 	def local_shell(self):
 			os.system("xterm -e cRouter/src/yrouter --interactive=1 --verbose=2 --confpath="+os.getcwd()+" --config=local_tunnel Router_1")
 	def create_tunnel(self):
@@ -110,6 +111,7 @@ class AmazonCloudFunctions:
 		print("opening local router")
 		p2.start()
 		
+		#Note if you get "unable to connect to tun0" try a different Router number i.e. Router_2 instead
 		#60000+interface_id+router_number*100 
 		# dstport should be the same as the interface id
 		#Name of router is Router_1 where in this case 1 is the router number
@@ -123,6 +125,11 @@ class AmazonCloudFunctions:
 		f.write(ifconfig)
 		route = "route add -dev tun0 -net 20.20.20.20 -netmask 255.255.255.255\n"
 		f.write(route)
+		#raw socket commands for injecting packets into the kernel
+		ifconfig_raw = "ifconfig add raw1 -addr 30.30.30.30\n"
+		f.write(ifconfig_raw)
+		route_raw = "route add -dev raw1 -net 172.17.0.1 -netmask 255.255.255.255\n"
+		f.write(route_raw)
 		f.close()
 
 	def create_tunnel_local_config_file(self):
