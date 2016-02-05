@@ -619,7 +619,8 @@ void arpCmd()
 				next_tok = strtok(NULL, " \n");
 				Dot2IP(next_tok, ip_addr);
 			}
-			} else if ((next_tok = strtok(NULL, " \n")) != NULL)
+			}
+			if ((next_tok = strtok(NULL, " \n")) != NULL)
             {
 				if (!strcmp("-mac", next_tok))
 				{
@@ -1019,7 +1020,7 @@ void helpCmd()
 		{
 			if (strstr(n_clie->long_helpstr, ".hlp") != NULL)
 			{
-				sprintf(tmpbuf, "man %s/grouter/helpdefs/%s", getenv("GINI_SHARE"), n_clie->long_helpstr);
+				sprintf(tmpbuf, "man %s/helpdefs/%s", getenv("GINI_HOME"), n_clie->long_helpstr);
 				system(tmpbuf);
 			} else
 			{
