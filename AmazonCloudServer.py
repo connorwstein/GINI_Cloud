@@ -23,7 +23,10 @@ class AmazonCloudFunctions:
 		self.key_name = "GINI"
 		self.ec2 = None
 		self.new_instance_ip = None # just for debugging
-
+		self.new_instance_private_ip = None
+	def print_routes(self):
+		string = os.popen('ssh -i GINI.pem ubuntu@'+self.new_instance_ip+" 'arp -a'").read()
+		print string
 	def configure_aws(self,key,secret_key):
 		#Create the .aws directory with the users keys (same functionality as aws configure)
 		path=os.path.join(os.environ['HOME'],".aws")
@@ -43,6 +46,8 @@ class AmazonCloudFunctions:
 			sys.exit(1)
 	def get_ip(self):
 		return self.new_instance_ip
+	def get_private_ip(self):
+		return self.new_instance_private_ip
 	def list_instances(self):
 		for inst in self.ec2.instances.all():
 			if inst.public_ip_address != None:
@@ -65,6 +70,7 @@ class AmazonCloudFunctions:
 			time.sleep(5)
 		# Need this newly created instances public IP address to set up the tunnel
 		self.new_instance_ip = new_instance[0].public_ip_address 
+		self.new_instance_private_ip = new_instance[0].private_ip_address
 	def stop_all_instances(self):
 		for inst in self.ec2.instances.all():
 			inst.stop()
@@ -77,8 +83,9 @@ class AmazonCloudFunctions:
 				inst.terminate()
 	def get_running_instance(self):
 		for inst in self.ec2.instances.all():
-			if inst.public_ip_address != None:
+			if (inst.public_ip_address != None) and (inst.private_ip_address != None):
 				self.new_instance_ip = inst.public_ip_address
+				self.new_instance_private_ip = inst.private_ip_address
 				break;
 	def key_gen(self):
 		# False means make the key for real
@@ -126,9 +133,13 @@ class AmazonCloudFunctions:
 		route = "route add -dev tun0 -net 20.20.20.20 -netmask 255.255.255.255\n"
 		f.write(route)
 		#raw socket commands for injecting packets into the kernel
-		ifconfig_raw = "ifconfig add raw1 -addr 30.30.30.30\n"
+		ifconfig_raw = "ifconfig add raw1 -addr "+self.new_instance_private_ip+"\n"
 		f.write(ifconfig_raw)
-		route_raw = "route add -dev raw1 -net 172.17.0.1 -netmask 255.255.255.255\n"
+		#for some reason unable to get the default gateway ip address from boto3
+		#have to do it this way
+		cloud_arp_table = os.popen('ssh -i GINI.pem ubuntu@'+self.new_instance_ip+" 'arp -a'").read()
+		default_gateway = cloud_arp_table[cloud_arp_table.find("(")+1:cloud_arp_table.find(")")]
+		route_raw = "route add -dev raw1 -net 172.0.0.0 -netmask 255.0.0.0 -gw "+default_gateway+"\n"
 		f.write(route_raw)
 		f.close()
 
