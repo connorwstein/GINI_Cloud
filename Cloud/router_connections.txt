@@ -1,0 +1,33 @@
+Connecting 2 g/c/yRouters
+
+On local GINI host:
+1) set up tun0 interface and connect it to cloud instance c/g/yrouter:
+ifconfig add tun0 -dstip <cloud_public_ip> -dstport <router_number> -addr <addr> -hwaddr <hwaddr>
+<router_number> is the number of the router. If the router name is Router_1, <router_number> is 1
+
+2) add routes to router to direct traffic going to cloud instance to go through tun0 interface
+route add -dev tun0 -net <cloud_public_ip> -netmask 255.255.255.255 (if you want exact match)
+
+On cloud instance:
+1) start c/g/yrouter
+./yrouter --interactive=1 --verbose=2 <router_name>
+<router_name> has to be the following standard: Router_X where X is the router number
+the router number is the number used in the calculation of the port assignment: 60000 + interfaceid + (router_number * 100) 
+
+2) set up tun0 interface and connect it to GINI host c/g/yrouter:
+ifconfig add tun0 -dstip <public_ip_GINI_host> -dstport <router_number> -addr <addr> -hwaddr <hwaddr>
+
+3) add routes to c/g/yrouter to local GINI host
+route add -dev tun0 -net <local_gini_host> -netmask 255.255.255.255 (if you want exact match)
+
+4) create a tap interface on the cloud machine...inside the cloud machine and not in the customized router shell
+tunctl -u $USER
+
+5) put up the tap interface on the cloud machine and not customized router shell
+ifconfig up tap0
+
+6) inside the customized c/g/yrouter shell, create a tap interface pointing to cloud machine
+ifconfig add tap1 -addr <cloud_public_ip> -hwaddr <hardware address of tap interface created in step 4>
+
+7) add route to route traffic to the tap1 interface
+route add -dev tap1 -net <cloud_public_ip> -netmask 255.255.255.255
