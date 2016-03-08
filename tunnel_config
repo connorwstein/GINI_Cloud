@@ -1,2 +1,0 @@
-ifconfig add tun0 -dstip 1234 -dstport 0 -addr 1234 -hwaddr a0:a0:a0:a0:a0
-route add -dev tun0 -net 1234 -netmask 255.255.255.255
