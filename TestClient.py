@@ -21,6 +21,10 @@ while True:
 		s.list_instances()
 	if key == 'ip':
 		print(s.get_ip())
+	if key == 'private_ip':
+		print(s.get_private_ip())
+	if key == 'route':
+		s.print_routes()
 	if key == 'create_cloud_config':
 		s.create_tunnel_cloud_config_file()
 	if key == 'create_local_config':

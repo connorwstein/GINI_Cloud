@@ -156,8 +156,12 @@ vpl_data_t *raw_connect(uchar* mac_addr)
         return NULL;
     }
     
-    interface[0] = 't';
-    sprintf(&interface[1], "%d", rconfig.top_num); 
+    // This was specific to Ahmed's implementation 
+    // i.e. these were the names of the interfaces on the arduino Yuns
+    // in our case we want to use the eth0 interface on the Amazon machine 
+    // interface[0] = 't';
+    // sprintf(&interface[1], "%d", rconfig.top_num); 
+    strcpy(interface, "eth0");
     verbose(1, "[raw_connect]:: Binding to interface %s strlen = %d", interface, strlen(interface));
     ifr = calloc(1, sizeof(struct ifreq));
     strcpy((char*)ifr->ifr_name, interface);
