@@ -12,6 +12,7 @@
 #include "ip.h"
 #include "message.h"
 #include "grouter.h"
+#include "nat.h"
 #include <slack/err.h>
 #include <netinet/in.h>
 #include <sys/time.h>
@@ -31,7 +32,7 @@ void ICMPProcessPacket(gpacket_t *in_pkt)
 	ip_packet_t *ip_pkt = (ip_packet_t *)in_pkt->data.data;
 	int iphdrlen = ip_pkt->ip_hdr_len *4;
 	icmphdr_t *icmphdr = (icmphdr_t *)((uchar *)ip_pkt + iphdrlen);
-
+	char tmp[40];
 	switch (icmphdr->type)
 	{
 	case ICMP_ECHO_REQUEST:
@@ -40,7 +41,17 @@ void ICMPProcessPacket(gpacket_t *in_pkt)
 		break;
 
 	case ICMP_ECHO_REPLY:
-		verbose(2, "[ICMPProcessPacket]:: ICMP processing for ECHO reply");
+	        printf("ECHO REPLY ID: %d", icmphdr->un.echo.id);
+/*		printGPacket(ip_pkt, 3, "connor");
+		if(applyDNAT(ip_pkt, icmphdr->un.echo.id)!=-1){
+			//DNAT was applied, pass on the packet
+			//printNAT();	
+			///IPOutgoingPacket(ip_pkt, NULL, 0, 0, ICMP_PROTOCOL); // second last parameter indicates if is a new packet, in this case no, so set to zero
+			printGPacket(ip_pkt, 3, "connor");
+			break;
+		}	*/
+		verbose(1, "[ICMPProcessPacket]:: ICMP processing for ECHO reply");
+		ICMPProcessEchoRequest(in_pkt);
 		ICMPProcessEchoReply(in_pkt);
 		break;
 
@@ -123,7 +134,7 @@ void ICMPSendPingPacket(uchar *dst_ip, int size, int seq)
 	cksum = checksum((uchar *)icmphdr, size/2);  // size = payload (given) + icmp_header
 	icmphdr->checksum = htons(cksum);
 
-	verbose(2, "[sendPingPacket]:: Sending... ICMP ping to  %s", IP2Dot(tmpbuf, dst_ip));
+	verbose(1, "[sendPingPacket]:: Sending... ICMP ping to  %s", IP2Dot(tmpbuf, dst_ip));
 
 	// send the message to the IP routine for further processing
 	// the IP should create new header .. provide needed information from here.
@@ -177,6 +188,7 @@ void ICMPProcessTTLExpired(gpacket_t *in_pkt)
  */
 void ICMPProcessEchoRequest(gpacket_t *in_pkt)
 {
+	printf("ICMP ProcessEcho Request\n");
 	ip_packet_t *ipkt = (ip_packet_t *)in_pkt->data.data;
 	int iphdrlen = ipkt->ip_hdr_len *4;
 	icmphdr_t *icmphdr = (icmphdr_t *)((uchar *)ipkt + iphdrlen);
@@ -243,6 +255,7 @@ void ICMPProcessEchoReply(gpacket_t *in_pkt)
  */
 void ICMPProcessRedirect(gpacket_t *in_pkt, uchar *gw_addr)
 {
+	printf("ICMP Redirect");
 	ip_packet_t *ipkt = (ip_packet_t *)in_pkt->data.data;
 	int iphdrlen = ipkt->ip_hdr_len * 4;
 	icmphdr_t *icmphdr = (icmphdr_t *)((uchar *)ipkt + iphdrlen);

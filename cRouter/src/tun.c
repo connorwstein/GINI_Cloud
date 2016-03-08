@@ -31,6 +31,8 @@ extern router_config rconfig;
 
 void *toTunDev(void *arg)
 {
+	printf("CONNOR DEBUG: toTunDev\n");
+
 	gpacket_t *inpkt = (gpacket_t *)arg;
 	interface_t *iface;
 	arp_packet_t *apkt;
@@ -44,12 +46,13 @@ void *toTunDev(void *arg)
 		/* send IP packet or ARP reply */
 		if (inpkt->data.header.prot == htons(ARP_PROTOCOL))
 		{
+			printf("CONNOR DEBUG: sending arp\n");
 			apkt = (arp_packet_t *) inpkt->data.data;
 			COPY_MAC(apkt->src_hw_addr, iface->mac_addr);
 			COPY_IP(apkt->src_ip_addr, gHtonl(tmpbuf, iface->ip_addr));
 		}
 		pkt_size = findPacketSize(&(inpkt->data));
-		verbose(2, "[toTunDev]:: tun_sendto called for interface %d.. ", iface->interface_id);
+		verbose(1, "[toTunDev]:: tun_sendto called for interface %d.. ", iface->interface_id);
 		tun_sendto(iface->vpl_data, &(inpkt->data), pkt_size);
 		free(inpkt);          // finally destroy the memory allocated to the packet..
 	} else
@@ -64,6 +67,7 @@ void *toTunDev(void *arg)
  */
 void* fromTunDev(void *arg)
 {
+    printf("CONNOR DEBUG: fromTunDev");
     interface_t *iface = (interface_t *) arg;
     interface_array_t *iarr = (interface_array_t *)iface->iarray;
     uchar bcast_mac[] = MAC_BCAST_ADDR;
@@ -85,12 +89,11 @@ void* fromTunDev(void *arg)
         pktsize = tun_recvfrom(iface->vpl_data, &(in_pkt->data), sizeof(pkt_data_t));
         pthread_testcancel();
         
-        verbose(2, "[fromTunDev]:: Destination MAC is %s ", MAC2Colon(tmpbuf, in_pkt->data.header.dst));
-        verbose(2, "[fromTunDev CONNOR] DATA: %s ", in_pkt->data.data);
+        verbose(1, "[fromTunDev]:: Destination MAC is %s ", MAC2Colon(tmpbuf, in_pkt->data.header.dst));
         // check whether the incoming packet is a layer 2 broadcast or
         // meant for this node... otherwise should be thrown..
         // TODO: fix for promiscuous mode packet snooping.
-
+	/*
         if ((COMPARE_MAC(in_pkt->data.header.dst, iface->mac_addr) != 0) &&
                 (COMPARE_MAC(in_pkt->data.header.dst, bcast_mac) != 0))
         {
@@ -98,21 +101,21 @@ void* fromTunDev(void *arg)
             free(in_pkt);
             continue;
         }
-
+*/
         // copy fields into the message from the packet..
         in_pkt->frame.src_interface = iface->interface_id;
         COPY_MAC(in_pkt->frame.src_hw_addr, iface->mac_addr);
         COPY_IP(in_pkt->frame.src_ip_addr, iface->ip_addr);
-
+	/*
         // check for filtering.. if the it should be filtered.. then drop
         if (filteredPacket(filter, in_pkt))
         {
-            verbose(2, "[fromTunDev]:: Packet filtered..!");
+            verbose(1, "[fromTunDev]:: Packet filtered..!");
             free(in_pkt);
             continue;   // skip the rest of the loop
         }
-
-        verbose(2, "[fromTunDev]:: Packet is sent for enqueuing..");
+	*/
+        verbose(1, "[fromTunDev]:: Packet is sent for enqueuing..");
         enqueuePacket(pcore, in_pkt, sizeof(gpacket_t));
     }
 }
@@ -170,7 +173,7 @@ vpl_data_t *tun_connect(short int src_port, uchar* src_IP,
     pri->data = fd;
     pri->local_addr = (void*)srcaddr;
     pri->data_addr = (void*)dstaddr;
-
+    printf("\n\nTUN SUCCESS\n\n");
     return pri;
 }
 
@@ -191,14 +194,6 @@ int tun_recvfrom(vpl_data_t *vpl, void *buf, int len)
     
     rcv_addr_len = sizeof(rcvaddr);
     n=recvfrom(vpl->data,buf,len,0,(struct sockaddr *)&rcvaddr,&rcv_addr_len);
-    //Inspect the buf before the error checking
-    printf("RAW TUNNEL DATA\n");
-    char *data = (char*)buf;
-    int i;
-    for(i = 0; i < len; i++){
-        printf("%c", data[i]);
-    }
-    printf("\n");
     if (n == -1) 
     {
         verbose(2, "[tun_recvfrom]:: unable to receive packet, error = %s", strerror(errno));		
@@ -206,7 +201,6 @@ int tun_recvfrom(vpl_data_t *vpl, void *buf, int len)
     } else if((rcvaddr.sin_addr.s_addr != dstaddr->sin_addr.s_addr) || 
                rcvaddr.sin_port != dstaddr->sin_port)
     { 
-        //Packets from the cloud fail here
         verbose(2, "[tun_recvfrom]:: source IP or port does not match interface router");
         return EXIT_FAILURE;
     }

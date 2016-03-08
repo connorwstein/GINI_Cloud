@@ -18,6 +18,8 @@
 #include "arp.h"
 #include "ip.h"
 #include "ethernet.h"
+#include "icmp.h"
+#include "nat.h"
 #include <netinet/in.h>
 #include <errno.h>
 #include <netdb.h>
@@ -56,17 +58,41 @@ void *toRawDev(void *arg)
 	char tmpbuf[MAX_TMPBUF_LEN];
 	int pkt_size;
 
-	verbose(2, "[toRawDev]:: entering the function.. ");
+	verbose(1, "[toRawDev]:: entering the function.. ");
 	// find the outgoing interface and device...
 	if ((iface = findInterface(inpkt->frame.dst_interface)) != NULL)
 	{
+		char tmp[40];
+		memset(tmp, 0, sizeof(tmp));
+		IP2Dot(tmp, inpkt->frame.src_ip_addr);
+		/* The Amazon network has the prefix 172, so if a packet is sent to the raw interface and it does
+		not begin with that prefix, we know that the packet has come from the local gini network instead.
+		In this case we want to apply a SNAT, to make the packet seem as if it has come from the cRouter 
+		so that Amazon machines will be able to respond (recognize the address). Note that the reverse
+		NAT operation is performed in ip.c*/
+		if(inpkt->data.header.prot != htons(ARP_PROTOCOL) && !(tmp[0] == '1' && tmp[1] == '7' && tmp[2] == '2')) {
+			//printf("\n\n TRYING TO PING AMAZON CLOUD\n");				
+			//printGPacket(inpkt, 3, "CONNOR PACKET");
+			ip_packet_t *ipkt = (ip_packet_t *)(inpkt->data.data);
+			ipkt->ip_hdr_len = 5;                                  // no IP header options!!
+			icmphdr_t *icmphdr = (icmphdr_t *)((uchar *)ipkt + ipkt->ip_hdr_len*4);
+			printf("\n\nICMP ID: %d\n", icmphdr->un.echo.id); 
+			/*The IP address given to the SNAT function is the private ip address of the 
+			Amazon instance that is running the cRouter in reverse */
+			applySNAT("62.44.31.172", (ip_packet_t*)inpkt->data.data, icmphdr->un.echo.id);
+			printNAT();	
+		}
 		/* send IP packet or ARP reply */
 		if (inpkt->data.header.prot == htons(ARP_PROTOCOL))
 		{
+			printf("CONNORS DEBUG arp in toRawDev\n");
 			apkt = (arp_packet_t *) inpkt->data.data;
 			COPY_MAC(apkt->src_hw_addr, iface->mac_addr);
 			COPY_IP(apkt->src_ip_addr, gHtonl(tmpbuf, iface->ip_addr));
 		}
+		if(inpkt->data.header.prot == htons(ICMP_PROTOCOL)){
+			printf("\nICMP Request over raw\n");
+		}		
 		pkt_size = findPacketSize(&(inpkt->data));
 		verbose(2, "[toRawDev]:: raw_sendto called for interface %d.. ", iface->interface_id);
 		raw_sendto(iface->vpl_data, &(inpkt->data), pkt_size);
@@ -107,7 +133,6 @@ void* fromRawDev(void *arg)
         // check whether the incoming packet is a layer 2 broadcast or
         // meant for this node... otherwise should be thrown..
         // TODO: fix for promiscuous mode packet snooping.
-
         if ((COMPARE_MAC(in_pkt->data.header.dst, iface->mac_addr) != 0) &&
                 (COMPARE_MAC(in_pkt->data.header.dst, bcast_mac) != 0))
         {
@@ -115,14 +140,21 @@ void* fromRawDev(void *arg)
             free(in_pkt);
             continue;
         }
-
+		
         // copy fields into the message from the packet..
         in_pkt->frame.src_interface = iface->interface_id;
         COPY_MAC(in_pkt->frame.src_hw_addr, iface->mac_addr);
         COPY_IP(in_pkt->frame.src_ip_addr, iface->ip_addr);
-
+	
+	
+	char buf[20];
+	memset(buf, 0, sizeof(buf));
+	IP2Dot(buf, in_pkt->frame.src_ip_addr);
+//	if(strcmp(buf, "172.31.32.1")==0)
+//		printf("FROM RAW IP %s\n", buf);
         // check for filtering.. if the it should be filtered.. then drop
-        if (filteredPacket(filter, in_pkt))
+     
+	if (filteredPacket(filter, in_pkt))
         {
             verbose(2, "[fromRawDev]:: Packet filtered..!");
             free(in_pkt);
@@ -156,11 +188,11 @@ vpl_data_t *raw_connect(uchar* mac_addr)
         return NULL;
     }
     
-    // This was specific to Ahmed's implementation 
-    // i.e. these were the names of the interfaces on the arduino Yuns
-    // in our case we want to use the eth0 interface on the Amazon machine 
-    // interface[0] = 't';
-    // sprintf(&interface[1], "%d", rconfig.top_num); 
+    //interface[0] = 't';
+    //sprintf(&interface[1], "%d", rconfig.top_num); 
+    //Above is from Ahmeds implementation
+    //For the cloud we want to use the eth0
+    //interface on the amazon machine for the raw socket
     strcpy(interface, "eth0");
     verbose(1, "[raw_connect]:: Binding to interface %s strlen = %d", interface, strlen(interface));
     ifr = calloc(1, sizeof(struct ifreq));

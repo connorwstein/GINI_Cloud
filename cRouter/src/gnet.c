@@ -844,12 +844,8 @@ void *GNETHandler(void *outq)
 	while (1)
 	{
 		verbose(2, "[gnetHandler]:: Reading message from output Queue..");
-		printSimpleQueue(outputQ);
-		if (readQueue(outputQ, (void **)&in_pkt, &inbytes) == EXIT_FAILURE){
-			verbose(2,"GNET HANDLER READ EXIT FAILURE");
+		if (readQueue(outputQ, (void **)&in_pkt, &inbytes) == EXIT_FAILURE)
 			return NULL;
-		}
-			
 		verbose(2, "[gnetHandler]:: Recvd message pkt ");
 		pthread_testcancel();
 

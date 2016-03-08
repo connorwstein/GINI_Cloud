@@ -2,6 +2,7 @@
  * ip.c (collection of functions that implement the IP (Internet protocol).
  * AUTHOR: Original version by Weiling Xu
  *         Revised by Muthucumaru Maheswaran
+ *
  * DATE:   Last revised on June 22, 2008
  */
 
@@ -10,6 +11,7 @@
 #include "routetable.h"
 #include "mtu.h"
 #include "protocols.h"
+#include "icmp.h"
 #include "ip.h"
 #include "fragment.h"
 #include "packetcore.h"
@@ -43,7 +45,21 @@ void IPIncomingPacket(gpacket_t *in_pkt)
 	// get a pointer to the IP packet
         ip_packet_t *ip_pkt = (ip_packet_t *)&in_pkt->data.data;
 	uchar bcast_ip[] = IP_BCAST_ADDR;
-
+	
+	int iphdrlen = ip_pkt->ip_hdr_len *4;
+	icmphdr_t *icmphdr = (icmphdr_t *)((uchar *)ip_pkt + iphdrlen);
+	
+	/*If both the ICMP ECHO ID and the IP address are in the NAT table
+	(the NAT table used for traversing between local and amazon GINI networks), 
+	then undo the SNAT procedure that was done on the way out of this router. 
+	For example, pinging a machine on the amazon network from a local gini network
+	would result in an SNAT applied at the cRouter, making the packet appear as if it came
+	from the cRouter itself. Now when a ECHO REPLY comes back, we undo that SNAT here.*/
+	if(applyDNAT(ip_pkt, icmphdr->un.echo.id)!=-1){
+		//DNAT was applied, pass on the packet
+		//printNAT();
+		printf("PACKET FOR DNAT\n");	
+	}			       	
 	// Is this IP packet for me??
 	if (IPCheckPacket4Me(in_pkt))
 	{
@@ -451,7 +467,7 @@ int IPVerifyPacket(ip_packet_t *ip_pkt)
 	// verify the header checksum
 	if (checksum((void *)ip_pkt, hdr_len *2) != 0)
 	{
-		verbose(2, "[IPVerifyPacket]:: packet from %s failed checksum, packet thrown",
+		verbose(1, "[IPVerifyPacket]:: packet from %s failed checksum, packet thrown",
 		       IP2Dot(tmpbuf, gNtohl((tmpbuf+20), ip_pkt->ip_src)));
 		return EXIT_FAILURE;
 	}
@@ -459,7 +475,7 @@ int IPVerifyPacket(ip_packet_t *ip_pkt)
 	// Check correct IP version
 	if (ip_pkt->ip_version != 4)
 	{
-		verbose(2, "[IPVerifyPacket]:: from %s failed checksum, packet thrown",
+		verbose(1, "[IPVerifyPacket]:: from %s failed checksum, packet thrown",
 		       IP2Dot(tmpbuf, gNtohl((tmpbuf + 20), ip_pkt->ip_src)));
 		return EXIT_FAILURE;
 	}

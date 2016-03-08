@@ -74,9 +74,10 @@ int ARPSend2Output(gpacket_t *pkt)
  */
 int ARPResolve(gpacket_t *in_pkt)
 {
+	printf("CONNORS DEBUG: ARPResolve\n");
 	uchar mac_addr[6];
 	char tmpbuf[MAX_TMPBUF_LEN];
-
+	
 	in_pkt->data.header.prot = htons(IP_PROTOCOL);
 	// lookup the ARP table for the MAC for next hop
 	if (ARPFindEntry(in_pkt->frame.nxth_ip_addr, mac_addr) == EXIT_FAILURE)
