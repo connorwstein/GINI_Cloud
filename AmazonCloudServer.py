@@ -23,7 +23,10 @@ class AmazonCloudFunctions:
 		self.key_name = "GINI"
 		self.ec2 = None
 		self.new_instance_ip = None # just for debugging
-
+		self.new_instance_private_ip = None
+	def print_routes(self):
+		string = os.popen('ssh -i GINI.pem ubuntu@'+self.new_instance_ip+" 'arp -a'").read()
+		print string
 	def configure_aws(self,key,secret_key):
 		#Create the .aws directory with the users keys (same functionality as aws configure)
 		path=os.path.join(os.environ['HOME'],".aws")
@@ -43,6 +46,8 @@ class AmazonCloudFunctions:
 			sys.exit(1)
 	def get_ip(self):
 		return self.new_instance_ip
+	def get_private_ip(self):
+		return self.new_instance_private_ip
 	def list_instances(self):
 		for inst in self.ec2.instances.all():
 			if inst.public_ip_address != None:
@@ -57,7 +62,7 @@ class AmazonCloudFunctions:
 		if not found_key:
 			self.key_gen()
 		# This image ID is a special image that has the yRouter installed on it
-		new_instance = self.ec2.create_instances(ImageId="ami-fa94859b", MinCount=1, MaxCount=1, InstanceType='t2.micro', KeyName = self.key_name, SecurityGroups = ['GINI',])	
+		new_instance = self.ec2.create_instances(ImageId="ami-4021c620", MinCount=1, MaxCount=1, InstanceType='t2.micro', KeyName = self.key_name, SecurityGroups = ['GINI',])	
 		# Chill for that instance to be crafted
 		while(new_instance[0].public_ip_address == None):
 			new_instance[0].load()  # Get current status
@@ -65,6 +70,7 @@ class AmazonCloudFunctions:
 			time.sleep(5)
 		# Need this newly created instances public IP address to set up the tunnel
 		self.new_instance_ip = new_instance[0].public_ip_address 
+		self.new_instance_private_ip = new_instance[0].private_ip_address
 	def stop_all_instances(self):
 		for inst in self.ec2.instances.all():
 			inst.stop()
@@ -77,8 +83,9 @@ class AmazonCloudFunctions:
 				inst.terminate()
 	def get_running_instance(self):
 		for inst in self.ec2.instances.all():
-			if inst.public_ip_address != None:
+			if (inst.public_ip_address != None) and (inst.private_ip_address != None):
 				self.new_instance_ip = inst.public_ip_address
+				self.new_instance_private_ip = inst.private_ip_address
 				break;
 	def key_gen(self):
 		# False means make the key for real
@@ -92,7 +99,8 @@ class AmazonCloudFunctions:
 	def get_port_number(self, interface_id, router_number):
 		return 60000+interface_id+router_number*100
 	def cloud_shell(self):
-			os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no ubuntu@"+self.new_instance_ip+" 'source ~/.profile; sudo -E yRouter/src/yrouter --interactive=1 --verbose=2 --confpath=/home/ubuntu --config=cloud_tunnel Router_1;exec bash'")
+			#login as root in order to create the raw socket
+			os.system("xterm -e ssh -i GINI.pem -o StrictHostKeyChecking=no -t ubuntu@"+self.new_instance_ip+" 'export GINI_HOME=/home/ubuntu; sudo -E /home/ubuntu/yRouter/src/yrouter --interactive=1 --confpath=/home/ubuntu --config=cloud_tunnel Router_2;exec bash'")
 	def local_shell(self):
 			os.system("xterm -e cRouter/src/yrouter --interactive=1 --verbose=2 --confpath="+os.getcwd()+" --config=local_tunnel Router_1")
 	def create_tunnel(self):
@@ -110,6 +118,7 @@ class AmazonCloudFunctions:
 		print("opening local router")
 		p2.start()
 		
+		#Note if you get "unable to connect to tun0" try a different Router number i.e. Router_2 instead
 		#60000+interface_id+router_number*100 
 		# dstport should be the same as the interface id
 		#Name of router is Router_1 where in this case 1 is the router number
@@ -123,6 +132,15 @@ class AmazonCloudFunctions:
 		f.write(ifconfig)
 		route = "route add -dev tun0 -net 20.20.20.20 -netmask 255.255.255.255\n"
 		f.write(route)
+		#raw socket commands for injecting packets into the kernel
+		ifconfig_raw = "ifconfig add raw1 -addr "+self.new_instance_private_ip+"\n"
+		f.write(ifconfig_raw)
+		#for some reason unable to get the default gateway ip address from boto3
+		#have to do it this way
+		cloud_arp_table = os.popen('ssh -i GINI.pem ubuntu@'+self.new_instance_ip+" 'arp -a'").read()
+		default_gateway = cloud_arp_table[cloud_arp_table.find("(")+1:cloud_arp_table.find(")")]
+		route_raw = "route add -dev raw1 -net 172.0.0.0 -netmask 255.0.0.0 -gw "+default_gateway+"\n"
+		f.write(route_raw)
 		f.close()
 
 	def create_tunnel_local_config_file(self):
