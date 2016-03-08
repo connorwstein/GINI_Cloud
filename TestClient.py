@@ -2,12 +2,13 @@ import xmlrpclib
 import boto3
 import time
 import sys
+import keys
 
 s = xmlrpclib.ServerProxy('http://localhost:8000')
 
 # could use sys.argv to get the keys from the command line
 #note add your keys before running the test client
-s.configure_aws("AKIAIM65WKOBI3B3ETKA","emIme22KJKEPwrNIVbZ4h+FLeUhDrwNgqKWt55su")
+s.configure_aws(AWS_KEY,AWS_SECRET)
 
 # Print list of available methods
 print(s.system.listMethods())
