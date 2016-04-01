@@ -91,7 +91,6 @@ void *toRawDev(void *arg)
 		/* send IP packet or ARP reply */
 		if (inpkt->data.header.prot == htons(ARP_PROTOCOL))
 		{
-			printf("CONNORS DEBUG arp in toRawDev\n");
 			apkt = (arp_packet_t *) inpkt->data.data;
 			COPY_MAC(apkt->src_hw_addr, iface->mac_addr);
 			COPY_IP(apkt->src_ip_addr, gHtonl(tmpbuf, iface->ip_addr));
