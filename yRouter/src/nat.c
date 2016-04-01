@@ -16,7 +16,14 @@
 #include <stdlib.h>
 #include <endian.h>
 
-#define MAX_NAT_ENTRIES 5
+// Includes for obtaining the source ip address for the SNAT operation
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <unistd.h>
+
+#define MAX_NAT_ENTRIES 20 // Only the most recent 20 NAT calls will be stored (circular buffer)
 
 typedef struct{
 	int icmp_id;
@@ -25,6 +32,60 @@ typedef struct{
 
 int nat_table_index = 0;
 nat_entry nat_table[MAX_NAT_ENTRIES] = {0};
+
+/*
+	Returns the IP address of eth0. Only works on ubuntu machine. Used to determine what the source
+	ip address should be used for SNAT operation.
+*/
+char* getIp(void){
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s;
+    char *host  = malloc(NI_MAXHOST);
+   
+    if (getifaddrs(&ifaddr) == -1){
+    	return NULL;
+    }
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next){
+        if (ifa->ifa_addr == NULL)
+            continue;  
+
+        s=getnameinfo(ifa->ifa_addr,sizeof(struct sockaddr_in),host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+
+        if((strcmp(ifa->ifa_name,"eth0")==0)&&(ifa->ifa_addr->sa_family==AF_INET)){
+            if (s != 0){
+		return NULL;
+            }
+	    return host;
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return NULL;
+}
+
+/*
+	Takes in 172.31.44.65 --> 65.44.31.172
+*/
+void toNetworkByteOrder(char *ip, char *result){
+	int len = strlen(ip);
+	int ip_index = len - 1;
+	int result_index = 0;
+	while(ip_index > 0){
+		int index_dot = ip_index;
+		// Find index of dot
+		while(ip[index_dot] != '.' && index_dot >= 0) index_dot--;  
+		// Copy each character before the dot to the result
+		int k;
+		for(k = 0; k < (ip_index - index_dot); k++){
+			printf("%c", ip[index_dot + k + 1]);
+			result[result_index++] = ip[index_dot + k + 1];
+		}
+		if(result_index < len)
+			result[result_index++] =  '.';
+		ip_index = index_dot - 1;
+	}
+}
 
 void applySNAT(char *new_src, ip_packet_t *raw_ip, int id){
 	

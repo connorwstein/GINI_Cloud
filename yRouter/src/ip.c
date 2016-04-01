@@ -66,8 +66,6 @@ void IPIncomingPacket(gpacket_t *in_pkt)
 	is not 192 (local gini network).*/
 	if(!(tmp2[0]=='1' && tmp2[1]=='9' && tmp2[2] =='2') && (applyDNAT(ip_pkt, icmphdr->un.echo.id) != -1)){
 		//DNAT was applied, pass on the packet
-		printf("SRC IP %s\n", tmp2);
-		printf("PACKET FOR DNAT\n");	
 	}			       	
 	
 	
