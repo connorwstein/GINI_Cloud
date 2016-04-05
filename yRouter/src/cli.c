@@ -370,7 +370,7 @@ void ifconfigCmd()
 {
     char *next_tok;
     interface_t *iface;
-    char dev_name[MAX_DNAME_LEN], con_sock[MAX_NAME_LEN], dev_type[MAX_NAME_LEN];
+    char dev_name[MAX_DNAME_LEN], con_sock[MAX_NAME_LEN], dev_type[MfAX_NAME_LEN];
     uchar mac_addr[6], ip_addr[4], gw_addr[4], dst_ip[4];
     int mtu, interface, mode;
     short int is_server;
@@ -424,8 +424,8 @@ void ifconfigCmd()
 
             printf("%d", dst_port);
             if(strcmp(dev_type, "ttun") == 0){
-            	if(dst_port < 10000){
-            		error("Must enter port number >10,000 for TCP tunnel");
+            	if(dst_port < 50000){
+            		error("Must enter port number >50,000 for TCP tunnel");
             		return;
             	}
             }
