@@ -1,8 +1,9 @@
 /*
- * This is the low level driver for the ttun interface. 
- * It hooks up a TCP socket to the mesh interface.
+ * This is the low level driver for the tun interface. 
+ * It hooks up a UDP socket to the mesh interface.
  * 
- * Copyright (C) 2016 GINI Cloud
+ * Copyright (C) 2015 Ahmed Youssef (ahmed.youssef@mail.mcgill.ca)
+ * Licensed under the GPL.
  */
 
 #ifndef TTUN_H
