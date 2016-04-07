@@ -2,7 +2,7 @@
  * ip.c (collection of functions that implement the IP (Internet protocol).
  * AUTHOR: Original version by Weiling Xu
  *         Revised by Muthucumaru Maheswaran
- *
+ *	   Modified by Connor Stein for the cRouter implementation (adding support for AWS)
  * DATE:   Last revised on June 22, 2008
  */
 
@@ -306,7 +306,35 @@ int IPCheck4Redirection(gpacket_t *in_pkt)
 	return EXIT_SUCCESS;
 }
 
+/*
+ * send a Fragmentation needed from previous router
+ */
+void ICMPProcessFragNeeded(gpacket_t *in_pkt, int interface_mtu)
+{
+	ip_packet_t *ipkt = (ip_packet_t *)in_pkt->data.data;
+	int iphdrlen = ipkt->ip_hdr_len *4;
+	icmphdr_t *icmphdr = (icmphdr_t *)((uchar *)ipkt + iphdrlen);
+	int iprevlen = iphdrlen + 8;  // IP header + 64 bits
+	ushort cksum;
+	char tmpbuf[MAX_TMPBUF_LEN];
+	uchar prevbytes[MAX_IPREVLENGTH_ICMP];
+	memcpy(prevbytes, (uchar *)ipkt, iprevlen);            // save OLD portions of IP packet
 
+	// form an ICMP Fragmentation needed message
+	icmphdr->type = ICMP_DEST_UNREACH;
+	icmphdr->code = ICMP_FRAG_NEEDED; 
+	icmphdr->checksum = 0;
+	icmphdr->un.frag.mtu = interface_mtu;
+	memcpy(((uchar *)icmphdr + 8), prevbytes, iprevlen);    // OLD ip header + 64 bits of original pkt 
+	cksum = checksum((uchar *)icmphdr, (8 + iprevlen)/2 );
+	icmphdr->checksum = htons(cksum);
+
+	verbose(2, "[processFragNeeded]:: Sending... ICMP Frag needed message ");
+
+	// send the message back to the IP module for further processing ..
+	// set the messsage as REPLY_PACKET
+	IPOutgoingPacket(in_pkt, gNtohl(tmpbuf, ipkt->ip_src), (8 + iprevlen), 0, ICMP_PROTOCOL);
+}
 
 /*
  * process an IP packet destined to the router itself

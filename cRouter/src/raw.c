@@ -1,8 +1,8 @@
 /*
- * This is the low level driver for the wlan interface. 
- * It creates a wlan interface on the station and hooks up a 
- * raw socket to the interface.
+ * This is a modified version of Ahmed Youssef's raw.c. 
+ * In this case, we use the raw socket to inject packets into an AWS instance. 
  * 
+ * Modified by Connor Stein (connor.stein@mail.mcgill.ca)
  * Copyright (C) 2015 Ahmed Youssef (ahmed.youssef@mail.mcgill.ca)
  * Licensed under the GPL.
  */
