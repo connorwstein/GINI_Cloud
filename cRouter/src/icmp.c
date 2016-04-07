@@ -239,7 +239,8 @@ void ICMPProcessEchoReply(gpacket_t *in_pkt)
 }
 
 /*
- * send an ICMP Redirect
+ * send an ICMP Redirect, modified to not actually send the redirect, because causes
+* erroneous error message pings when communicating with the AWS instance
  */
 void ICMPProcessRedirect(gpacket_t *in_pkt, uchar *gw_addr)
 {
@@ -266,6 +267,6 @@ void ICMPProcessRedirect(gpacket_t *in_pkt, uchar *gw_addr)
 
 	// send the message back to the IP routine for further processing ..
 	// set the messsage as REPLY_PACKET
-	IPOutgoingPacket(in_pkt, gNtohl(tmpbuf, ipkt->ip_src), (8 + iprevlen), 0, ICMP_PROTOCOL);
+	//IPOutgoingPacket(in_pkt, gNtohl(tmpbuf, ipkt->ip_src), (8 + iprevlen), 0, ICMP_PROTOCOL);
 }
 
